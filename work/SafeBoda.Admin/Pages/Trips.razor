@@ -1,0 +1,83 @@
+@page "/trips"
+@inject SafeBoda.Admin.Services.AuthService AuthService
+@inject SafeBoda.Admin.Services.ApiClient ApiClient
+@inject NavigationManager Navigation
+
+<h1>Active Trips</h1>
+
+@if (!AuthService.IsAuthenticated)
+{
+    <p>Redirecting to login...</p>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <p class="text-danger">@errorMessage</p>
+}
+else if (isLoading)
+{
+    <p>Loading trips...</p>
+}
+else if (!trips.Any())
+{
+    <p>No active trips.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Rider</th>
+                <th>Driver</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Fare</th>
+                <th>Requested At (UTC)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var trip in trips)
+            {
+                <tr>
+                    <td>@trip.Id</td>
+                    <td>@trip.RiderId</td>
+                    <td>@trip.DriverId</td>
+                    <td>@trip.Start.Latitude, @trip.Start.Longitude</td>
+                    <td>@trip.End.Latitude, @trip.End.Longitude</td>
+                    <td>@trip.Fare</td>
+                    <td>@trip.RequestTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IEnumerable<SafeBoda.Admin.Services.Trip> trips = Enumerable.Empty<SafeBoda.Admin.Services.Trip>();
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        try
+        {
+            var result = await ApiClient.GetTripsAsync();
+            trips = result ?? Enumerable.Empty<SafeBoda.Admin.Services.Trip>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load trips: {ex.Message}";
+            trips = Enumerable.Empty<SafeBoda.Admin.Services.Trip>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

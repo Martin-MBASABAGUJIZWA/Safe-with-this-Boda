@@ -1,0 +1,67 @@
+﻿@using Microsoft.AspNetCore.Components.Routing
+
+<div class="app-shell">
+    <!-- left sidebar -->
+    <aside class="sidebar">
+
+        <!-- Brand / Logo -->
+        <div class="brand">
+             <img src="images/safeboda-logo.png" alt="SafeBoda Logo" class="brand-image" /> 
+            <span class="brand-text">SafeBoda</span>
+        </div>
+
+   
+        <nav class="menu">
+            <NavLink href="/" Match="NavLinkMatch.All" class="menu-item" ActiveClass="active">
+                <span class="bi bi-house-door-fill"></span>
+                <span>Dashboard</span>
+            </NavLink>
+
+      
+
+
+            <NavLink href="Riders" class="menu-item" ActiveClass="active">
+                <span class="bi bi-people-fill"></span>
+                <span>Riders</span>
+            </NavLink>
+
+            <NavLink href="Drivers" class="menu-item" ActiveClass="active">
+                <span class="bi bi-person-gear"></span>
+                <span>Drivers</span>
+            </NavLink>
+
+            <NavLink href="trips" class="menu-item" ActiveClass="active">
+                <span class="bi bi-map"></span>
+                <span>Trips</span>
+            </NavLink>
+
+            <a class="menu-item">
+                <span class="bi bi-calendar"></span>
+                <span>Calendar</span>
+            </a>
+
+            <a class="menu-item">
+                <span class="bi bi-graph-up"></span>
+                <span>Analytics</span>
+            </a>
+
+            <a class="menu-item">
+                <span class="bi bi-people"></span>
+                <span>Team</span>
+            </a>
+        </nav>
+
+       
+        <div class="sidebar-footer">
+            <button class="download-btn">
+                <span class="bi bi-download"></span>
+                <span>Download App</span>
+            </button>
+        </div>
+
+    </aside>
+</div>
+
+@code {
+    
+}

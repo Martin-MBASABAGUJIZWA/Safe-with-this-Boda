@@ -1,0 +1,170 @@
+@page "/"
+@using SafeBoda.Admin.Services
+@using System.Linq
+@inject RiderService RiderService
+@inject DriverService DriverService
+@inject TripService TripService
+
+<div class="dashboard-container">
+    <div class="filters">
+
+        <!-- Role Filter -->
+        <div class="filter-group">
+            <span class="filter-label">Role:</span>
+
+            <button class="filter-btn @(selectedRole == "Rider" ? "active" : "")"
+                    @onclick="@(() => SetRoleFilter("Rider"))">
+                Riders
+            </button>
+
+            <button class="filter-btn @(selectedRole == "Driver" ? "active" : "")"
+                    @onclick="@(() => SetRoleFilter("Driver"))">
+                Driver
+            </button>
+        </div>
+
+        <!-- Vehicle Filter -->
+        <div class="filter-group">
+            <span class="filter-label">Vehicle:</span>
+
+            <button class="filter-btn @(selectedVehicle == "motorbike" ? "active" : "")"
+                    @onclick="@(() => SetVehicleFilter("motorbike"))">
+                Motorbike
+            </button>
+
+            <button class="filter-btn @(selectedVehicle == "car" ? "active" : "")"
+                    @onclick="@(() => SetVehicleFilter("car"))">
+                Car
+            </button>
+        </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-icon">
+                <span class="bi bi-people"></span>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value">@activeRiders</div>
+                <div class="metric-label">Active Riders</div>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon driver">
+                <span class="bi bi-person-gear"></span>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value">@activeDrivers</div>
+                <div class="metric-label">Active Drivers</div>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon trips">
+                <span class="bi bi-map"></span>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value">@tripsToday</div>
+                <div class="metric-label">Trips Today</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="recent-activity">
+        <h3>Recent Activity</h3>
+
+        @if (isLoading)
+        {
+            <p>Loading...</p>
+        }
+        else if (!string.IsNullOrEmpty(loadError))
+        {
+            <p style="color: red;">Error: @loadError</p>
+        }
+        else if (recentTrips == null || !recentTrips.Any())
+        {
+            <p>No recent trips found</p>
+        }
+        else
+        {
+            <div class="activity-list">
+                @foreach (var trip in recentTrips)
+                {
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <span class="bi bi-arrow-right-circle"></span>
+                        </div>
+                        <div class="activity-details">
+                            <div class="activity-title">Trip #@trip.Id.ToString().Substring(0, 6)</div>
+                            <div class="activity-meta">
+                                <span>@trip.RequestTime.ToString("g")</span>
+                                <span>•</span>
+                                <span>@trip.Fare.ToString("C")</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private int activeRiders = 0;
+    private int activeDrivers = 0;
+    private int tripsToday = 0;
+
+    private List<Trip> recentTrips = new();
+
+    private string selectedRole = "";
+    private string selectedVehicle = "";
+    private bool isLoading = true;
+    private string loadError = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            isLoading = true;
+            loadError = "";
+
+            var riders = await RiderService.GetAllRidersAsync();
+            var drivers = await DriverService.GetAllDriversAsync();
+            var trips = await TripService.GetAllTripsAsync();
+
+            activeRiders = riders?.Count() ?? 0;
+            activeDrivers = drivers?.Count() ?? 0;
+            tripsToday = trips?.Count(t => t.RequestTime.Date == DateTime.Now.Date) ?? 0;
+
+            recentTrips = (trips?.OrderByDescending(t => t.RequestTime).Take(5).ToList()) ?? new();
+
+            isLoading = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            isLoading = false;
+            loadError = $"Failed to load dashboard data: {ex.Message}";
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+            StateHasChanged();
+        }
+    }
+
+    private void SetRoleFilter(string role)
+    {
+        selectedRole = selectedRole == role ? "" : role;
+    }
+
+    private void SetVehicleFilter(string vehicle)
+    {
+        selectedVehicle = selectedVehicle == vehicle ? "" : vehicle;
+    }
+}

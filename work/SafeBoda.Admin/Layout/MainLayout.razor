@@ -1,0 +1,34 @@
+﻿@inject SafeBoda.Admin.Services.AuthService AuthService
+@inherits LayoutComponentBase
+
+@inject NavigationManager Navigation
+@using SafeBoda.Admin.Layout
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <span>SafeBoda Admin</span>
+
+            @if (AuthService.IsAuthenticated)
+            {
+                <button class="btn btn-link" @onclick=" Logout ">Logout</button>
+            }
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

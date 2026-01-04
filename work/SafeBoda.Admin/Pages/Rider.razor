@@ -1,0 +1,409 @@
+@page "/Riders"
+@using SafeBoda.Admin.Services
+@inject RiderService RiderService
+
+<style>
+  /* Page wrapper and consistency with dashboard */
+  .riders-page {
+    padding: 20px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color: #0f172a;
+  }
+
+  .riders-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-bottom:18px;
+  }
+
+  .riders-title {
+    font-size:1.25rem;
+    font-weight:600;
+  }
+
+  .riders-actions { display:flex; gap:8px; align-items:center; }
+
+  /* Search and filters */
+  .search { display:flex; gap:8px; align-items:center; }
+  .search input {
+    padding:8px 10px;
+    border-radius:10px;
+    border:1px solid #e6e9ef;
+    min-width:220px;
+  }
+
+  /* Riders list grid */
+  .riders-grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap:16px;
+  }
+
+  /* Rider card layout - important flex rules to keep controls inline */
+  .rider-card {
+    background:var(--surface, #ffffff);
+    border-radius:12px;
+    box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+    padding:12px;
+    display:flex;
+    gap:12px;
+    align-items:center;
+
+    /* keep the info and controls on same row */
+    justify-content: space-between;
+    min-height: 72px; /* consistent height so controls don't jump */
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+
+  .rider-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 26px rgba(15,23,42,0.08);
+  }
+
+  .rider-avatar {
+    width:56px;
+    height:56px;
+    border-radius:12px;
+    background:#f1f5f9;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+    font-size:1.1rem;
+    color:#0f172a;
+    flex: 0 0 auto;
+  }
+
+  /* allow the info column to shrink correctly (min-width:0) */
+  .rider-info {
+    flex: 1 1 auto;
+    min-width: 0; /* critical for text-overflow inside flex */
+    margin-right: 12px;
+  }
+
+  .rider-name {
+    font-weight:600;
+    font-size:1rem;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .rider-meta {
+    font-size:0.85rem;
+    color:var(--muted, #6b7280);
+    margin-top:4px;
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:nowrap;
+  }
+
+  /* Admin control buttons - non-wrapping inline row */
+  .rider-controls {
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex: 0 0 auto; /* reserve space, don't shrink */
+    white-space: nowrap;
+  }
+
+  .btn {
+    padding:8px 10px;
+    border-radius:10px;
+    border: none;
+    cursor:pointer;
+    font-weight:600;
+    background:transparent;
+  }
+
+  .btn-ghost {
+    background:transparent;
+    color:#0f172a;
+    border:1px solid #e6e9ef;
+  }
+
+  .btn-edit {
+    background:#fffaf4;
+    color:#E66A00;
+    border:1px solid #FFE6CC;
+  }
+
+  .btn-delete {
+    background:#fff5f5;
+    color:#b91c1c;
+    border:1px solid #ffd6d6;
+  }
+
+  .small-muted { font-size:0.85rem; color:var(--muted,#6b7280); }
+
+  /* Empty state and spinner */
+  .empty { text-align:center; padding:30px; color:var(--muted,#6b7280); }
+
+  /* Edit modal (simple inline modal) */
+  .modal-backdrop {
+    position:fixed;
+    inset:0;
+    background:rgba(2,6,23,0.45);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:60;
+  }
+
+  .modal {
+    background:white;
+    border-radius:12px;
+    padding:18px;
+    width:420px;
+    box-shadow:0 10px 40px rgba(2,6,23,0.35);
+  }
+
+  .modal h4 { margin:0 0 8px 0; }
+  .modal .form-row { margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+  .modal input { padding:10px; border-radius:8px; border:1px solid #e6e9ef; }
+
+  /* confirmation row */
+  .confirm-row { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
+
+  /* Responsive adjustments */
+  @@media (max-width: 560px) {
+    .riders-grid { grid-template-columns: 1fr; }
+    .rider-controls .btn { padding:6px 8px; font-size:0.85rem; }
+    /* If really tight, hide button labels and keep icons (if you have icons) */
+    /* .rider-controls .btn span.label { display:none; } */
+  }
+</style>
+
+<div class="riders-page">
+  <div class="riders-header">
+    <div>
+      <div class="riders-title">Riders — Manage accounts</div>
+      <div class="small-muted">View, rename, edit details or remove riders from the system.</div>
+    </div>
+
+    <div class="riders-actions">
+      <div class="search">
+        <input placeholder="Search by name or phone..." @bind="searchTerm" @bind:event="oninput" />
+        <button class="btn btn-ghost" @onclick="ClearSearch">Clear</button>
+      </div>
+      <button class="btn btn-ghost" @onclick="Reload">Refresh</button>
+    </div>
+  </div>
+
+  @if (riders == null)
+  {
+    <div class="empty">Loading riders...</div>
+  }
+  else if (!riders.Any())
+  {
+    <div class="empty">No riders found.</div>
+  }
+  else
+  {
+    <div class="riders-grid">
+      @foreach (var rider in FilteredRiders)
+      {
+        <div class="rider-card">
+          <div class="rider-avatar">@GetInitials(rider.Name)</div>
+
+          <div class="rider-info">
+            <div class="rider-name">@rider.Name</div>
+            <div class="rider-meta">
+              <span>@rider.PhoneNumber</span>
+            </div>
+          </div>
+
+          <div class="rider-controls">
+            <button class="btn btn-edit" @onclick="() => OpenEditModal(rider)">
+              <span class="bi bi-pencil-square" aria-hidden="true"></span> <span class="label">Edit</span>
+            </button>
+            <button class="btn btn-ghost" @onclick="() => ViewRiderDetails(rider)">
+              <span class="bi bi-eye" aria-hidden="true"></span> <span class="label">View</span>
+            </button>
+            <button class="btn btn-delete" @onclick="() => ConfirmDelete(rider)">
+              <span class="bi bi-trash" aria-hidden="true"></span> <span class="label">Delete</span>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Edit / Rename modal -->
+  @if (showEditModal && editingRider != null)
+  {
+    <div class="modal-backdrop" @onclick="CloseEditOnBackdrop">
+      <div class="modal" @onclick:stopPropagation>
+        <h4>Edit Rider</h4>
+        <div class="form-row">
+          <label>Name</label>
+          <input @bind="editingRiderName" />
+        </div>
+        <div class="form-row">
+          <label>Phone number</label>
+          <input @bind="editingRiderPhone" />
+        </div>
+
+        <div class="confirm-row">
+          <button class="btn btn-ghost" @onclick="CloseEditModal">Cancel</button>
+          <button class="btn btn-edit" @onclick="SaveEditAsync">Save changes</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Delete confirmation -->
+  @if (showDeleteConfirm && riderToDelete != null)
+  {
+    <div class="modal-backdrop">
+      <div class="modal" @onclick:stopPropagation>
+        <h4>Delete Rider</h4>
+        <div class="small-muted">Are you sure you want to permanently delete <strong>@riderToDelete.Name</strong>? This action cannot be undone.</div>
+
+        <div class="confirm-row" style="margin-top:16px;">
+          <button class="btn btn-ghost" @onclick="CancelDelete">Cancel</button>
+          <button class="btn btn-delete" @onclick="DeleteConfirmedAsync">Delete</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+@code {
+  // Using RiderDto from RiderService
+  private List<RiderDto>? riders;
+
+  private string searchTerm = "";
+
+  // Edit modal state
+  private bool showEditModal = false;
+  private RiderDto? editingRider;
+  private string editingRiderName = "";
+  private string editingRiderPhone = "";
+
+  // Delete confirm state
+  private bool showDeleteConfirm = false;
+  private RiderDto? riderToDelete;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await LoadRidersAsync();
+  }
+
+  private async Task LoadRidersAsync()
+  {
+    try
+    {
+      riders = (await RiderService.GetAllRidersAsync())?.ToList();
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Failed to load riders: {ex.Message}");
+      riders = new List<RiderDto>();
+    }
+    StateHasChanged();
+  }
+
+  private IEnumerable<RiderDto> FilteredRiders =>
+    (riders ?? Enumerable.Empty<RiderDto>())
+      .Where(r => string.IsNullOrWhiteSpace(searchTerm)
+        || r.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+        || r.PhoneNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+      .OrderBy(r => r.Name);
+
+  private string GetInitials(string name)
+  {
+    if (string.IsNullOrWhiteSpace(name)) return "U";
+    var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    if (parts.Length == 1) return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+    return (parts[0][0].ToString() + parts[1][0].ToString()).ToUpper();
+  }
+
+  private void ClearSearch()
+  {
+    searchTerm = "";
+  }
+
+  private void Reload()
+  {
+    _ = LoadRidersAsync();
+  }
+
+  private void OpenEditModal(RiderDto rider)
+  {
+    editingRider = rider;
+    editingRiderName = rider.Name;
+    editingRiderPhone = rider.PhoneNumber;
+    showEditModal = true;
+  }
+
+  private void CloseEditModal()
+  {
+    showEditModal = false;
+    editingRider = null;
+    editingRiderName = "";
+    editingRiderPhone = "";
+  }
+
+  private void CloseEditOnBackdrop()
+  {
+    // close when click outside modal
+    CloseEditModal();
+  }
+
+  private async Task SaveEditAsync()
+  {
+    if (editingRider == null) return;
+
+    try
+    {
+      await RiderService.UpdateRiderAsync(editingRider.Id, editingRiderName.Trim(), editingRiderPhone.Trim());
+      await LoadRidersAsync();
+      CloseEditModal();
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Failed to save rider: {ex.Message}");
+    }
+  }
+
+  /* ---------- VIEW (placeholder) ---------- */
+  private void ViewRiderDetails(RiderDto rider)
+  {
+    // Replace with navigation to rider details page or a details modal
+    Console.WriteLine($"Viewing rider {rider.Id} - {rider.Name}");
+  }
+
+  /* ---------- DELETE ---------- */
+  private void ConfirmDelete(RiderDto rider)
+  {
+    riderToDelete = rider;
+    showDeleteConfirm = true;
+  }
+
+  private void CancelDelete()
+  {
+    showDeleteConfirm = false;
+    riderToDelete = null;
+  }
+
+  private async Task DeleteConfirmedAsync()
+  {
+    if (riderToDelete == null) return;
+
+    try
+    {
+      await RiderService.DeleteRiderAsync(riderToDelete.Id);
+      await LoadRidersAsync();
+      showDeleteConfirm = false;
+      riderToDelete = null;
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Failed to delete rider: {ex.Message}");
+    }
+  }
+}

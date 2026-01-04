@@ -1,0 +1,356 @@
+@page "/login"
+@inject SafeBoda.Admin.Services.AuthService AuthService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@layout LoginLayout
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="logo-container">
+                <!-- Replace with your actual logo -->
+                <div class="logo-placeholder">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h1>SafeBoda Admin</h1>
+            </div>
+            <p class="login-subtitle">Sign in to your account</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>@errorMessage</span>
+            </div>
+        }
+
+        <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="validation-summary" />
+
+            <div class="form-group">
+                <label for="email" class="form-label">Email Address</label>
+                <InputText id="email" @bind-Value="loginModel.Email" class="form-input" placeholder="Enter your email" />
+                <ValidationMessage For="@(() => loginModel.Email)" class="validation-message" />
+            </div>
+
+            <div class="form-group">
+                <div class="form-label-container">
+                    <label for="password" class="form-label">Password</label>
+                    <a href="#" class="forgot-password">Forgot password?</a>
+                </div>
+                <InputText id="password" @bind-Value="loginModel.Password" type="password" class="form-input" placeholder="Enter your password" />
+                <ValidationMessage For="@(() => loginModel.Password)" class="validation-message" />
+            </div>
+
+            <button class="login-button" type="submit" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="button-loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Signing in...
+                    </span>
+                }
+                else
+                {
+                    <span>Sign in</span>
+                }
+            </button>
+        </EditForm>
+
+        <div class="login-footer">
+            <p>© 2024 SafeBoda Admin. All rights reserved.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .login-card {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 420px;
+        backdrop-filter: blur(10px);
+    }
+
+    .login-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .logo-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .logo-placeholder {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, #dba10b 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+    }
+
+    .login-header h1 {
+        color: #2d3748;
+        font-size: 24px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .login-subtitle {
+        color: #718096;
+        font-size: 14px;
+        margin: 0;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #4a5568;
+        font-size: 14px;
+    }
+
+    .form-label-container {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+
+    .forgot-password {
+        font-size: 12px;
+        color: #667eea;
+        text-decoration: none;
+    }
+
+    .forgot-password:hover {
+        text-decoration: underline;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        background-color: #fafafa;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+        background-color: white;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-input::placeholder {
+        color: #a0aec0;
+    }
+
+    /* Button Styles */
+    .login-button {
+        width: 100%;
+        padding: 14px 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-top: 8px;
+    }
+
+    .login-button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .login-button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .button-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    /* Alert Styles */
+    .alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+
+    .alert-error {
+        background-color: #fed7d7;
+        color: #c53030;
+        border: 1px solid #feb2b2;
+    }
+
+  
+    .validation-message {
+        color: #e53e3e;
+        font-size: 12px;
+        margin-top: 4px;
+        display: block;
+    }
+
+    .validation-summary {
+        background-color: #fed7d7;
+        color: #c53030;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        font-size: 14px;
+    }
+
+    .validation-summary ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+  
+    .login-footer {
+        margin-top: 32px;
+        text-align: center;
+        padding-top: 20px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .login-footer p {
+        color: #a0aec0;
+        font-size: 12px;
+        margin: 0;
+    }
+
+  
+    @@media (max-width: 480px) {
+    .login-container {
+        padding: 10px;
+    }
+
+    .login-card {
+        padding: 24px;
+    }
+
+    .login-header h1 {
+        font-size: 20px;
+    }
+    }
+
+
+    .fa-spin {
+        animation: fa-spin 1s infinite linear;
+    }
+
+    @@keyframes fa-spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+private LoginModel loginModel = new();
+private string? errorMessage;
+private bool isLoading = false;
+
+protected override void OnInitialized()
+{
+if (AuthService.IsAuthenticated)
+{
+Navigation.NavigateTo("/trips", forceLoad: true);
+}
+}
+
+protected override async Task OnAfterRenderAsync(bool firstRender)
+{
+if (firstRender)
+{
+await JSRuntime.InvokeVoidAsync("eval",
+@"if (!document.querySelector('link[href*=""font-awesome""]')) {
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
+    document.head.appendChild(link);
+}");
+}
+}
+
+private async Task HandleLogin()
+{
+isLoading = true;
+errorMessage = null;
+StateHasChanged();
+
+try
+{
+var success = await AuthService.LoginAsync(loginModel.Email, loginModel.Password);
+
+if (success)
+{
+Navigation.NavigateTo("/trips", forceLoad: true);
+}
+else
+{
+errorMessage = "Invalid email or password. Please try again.";
+}
+}
+catch (Exception ex)
+{
+errorMessage = "An error occurred during login. Please try again.";
+// Log the actual exception in your logging system
+Console.WriteLine($"LoginLayout error: {ex.Message}");
+}
+finally
+{
+isLoading = false;
+StateHasChanged();
+}
+}
+
+private class LoginModel
+{
+
+public string Email { get; set; } = string.Empty;
+
+public string Password { get; set; } = string.Empty;
+}
+}

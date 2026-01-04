@@ -1,0 +1,51 @@
+@page "/ /trips list"
+
+@using SafeBoda.Core
+@inject TripService TripService
+
+
+<h3>Trips</h3>
+
+@if (trips == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>RidersId</th>
+                <th>DriverId</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Fare</th>
+                <th>Request Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var trip in trips)
+            {
+                <tr>
+                    <td>@trip.Id</td>
+                    <td>@trip.RiderId</td>
+                    <td>@trip.DriverId</td>
+                    <td>@trip.Start.Latitude, @trip.Start.Longitude</td>
+                    <td>@trip.End.Latitude, @trip.End.Longitude</td>
+                    <td>@trip.Fare</td>
+                    <td>@trip.RequestTime</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Trip>? trips;
+
+    protected override async Task OnInitializedAsync()
+    {
+        trips = await TripService.GetTripsAsync();
+    }
+}
