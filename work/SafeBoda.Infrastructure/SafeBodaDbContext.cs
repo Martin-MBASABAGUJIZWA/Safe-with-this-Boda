@@ -1,9 +1,10 @@
+// In SafeBodaDbContext.cs
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using SafeBoda.Core;
+
 namespace SafeBoda.Infrastructure
 {
-
     public class SafeBodaDbContext : IdentityDbContext<ApplicationUser>
     {
         public SafeBodaDbContext(DbContextOptions<SafeBodaDbContext> options)
@@ -17,6 +18,37 @@ namespace SafeBoda.Infrastructure
         {
             base.OnModelCreating(modelBuilder);
             
+            // Remove any collation specifications for SQLite compatibility
+            foreach (var entity in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entity.GetProperties())
+                {
+                    if (property.ClrType == typeof(string))
+                    {
+                        property.SetCollation(null);
+                    }
+                }
+            }
+
+            // Seed Riders
+            modelBuilder.Entity<Rider>().HasData(
+                new Rider(
+                    Id: Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                    Name: "Test Rider",
+                    PhoneNumber: "1234567890"
+                )
+            );
+
+            // Seed Drivers
+            modelBuilder.Entity<Driver>().HasData(
+                new Driver(
+                    Id: Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                    Name: "Test Driver",
+                    PhoneNumber: "0987654321",
+                    MotoPlateNumber: "RAA123A"
+                )
+            );
+
             modelBuilder.Entity<Trip>(entity =>
             {
                 entity.OwnsOne(t => t.Start).HasData(
@@ -37,13 +69,6 @@ namespace SafeBoda.Infrastructure
                         RequestTime = DateTime.SpecifyKind(new DateTime(2024, 1, 1, 0, 0, 0), DateTimeKind.Utc)
                     }
                 );
-            });
-
-
-            modelBuilder.Entity<Trip>(entity =>
-            {
-                entity.OwnsOne(t => t.Start);
-                entity.OwnsOne(t => t.End);
             });
         }
     }

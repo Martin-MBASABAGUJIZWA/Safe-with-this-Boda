@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SafeBoda.Infrastructure;
 
@@ -10,9 +11,11 @@ using SafeBoda.Infrastructure;
 namespace SafeBoda.Infrastructure.Migrations
 {
     [DbContext(typeof(SafeBodaDbContext))]
-    partial class SafeBodaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260104224246_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0-preview.1.24081.2");
@@ -166,15 +169,6 @@ namespace SafeBoda.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Drivers");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("33333333-3333-3333-3333-333333333333"),
-                            MotoPlateNumber = "RAA123A",
-                            Name = "Test Driver",
-                            PhoneNumber = "0987654321"
-                        });
                 });
 
             modelBuilder.Entity("SafeBoda.Core.Rider", b =>
@@ -194,14 +188,6 @@ namespace SafeBoda.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Riders");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
-                            Name = "Test Rider",
-                            PhoneNumber = "1234567890"
-                        });
                 });
 
             modelBuilder.Entity("SafeBoda.Core.Trip", b =>
